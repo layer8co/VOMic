@@ -6,6 +6,32 @@ permissions:
   contents: write
   
 jobs:
+  ## Builds the golang server and puts it in the artifact
+  build-golang:
+    name: Build the linux app
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+        - name: Set up Go
+          uses: actions/setup-go@v5
+          with:
+            go-version: '1.24'
+
+            - name: Run Tests
+              run: go test ./... -v
+
+              - name: Build the app
+                run: |
+                  GOOS=linux GOARCH=amd64 go build -v -o vomic-linux-amd64 .
+
+              - name: Upload Build Artifacts
+                uses: actions/upload-artifact@v4
+                with:
+                    name: hava-binaries
+                    path: |
+                    vomic-linux-amd64
+
   build-android:
     name: Build the android app
     runs-on: ubuntu-latest
