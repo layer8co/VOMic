@@ -67,5 +67,6 @@ jobs:
         with:
           name: VOMic Development (Pre-release)
           generate_release_notes: true
+          tag_name: nightly
           prerelease: true 
           files: all-artifacts/**/*
