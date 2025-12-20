@@ -54,6 +54,11 @@ jobs:
           merge-multiple: true
           path: all-artifacts
 
+      - name: Create or update nightly tag
+        run: |
+          git tag -f nightly
+          git push origin nightly --force
+          
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
