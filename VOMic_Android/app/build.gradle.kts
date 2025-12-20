@@ -22,6 +22,16 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    signingConfigs {
+        create("release") {
+            // These should be included in the ci/cd environment.
+            keyAlias = System.getenv("KEY_ALIAS")
+            keyPassword = System.getenv("KEY_PASSWORD")
+            storeFile = file("layer8.jks")
+            storePassword = System.getenv("STORE_PASSWORD")
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false
@@ -44,15 +54,6 @@ android {
         buildConfig = true
     }
 
-    signingConfigs {
-        create("release") {
-            // These should be included in the ci/cd environment.
-            keyAlias = System.getenv("KEY_ALIAS")
-            keyPassword = System.getenv("KEY_PASSWORD")
-            storeFile = file("layer8.jks")
-            storePassword = System.getenv("STORE_PASSWORD")
-        }
-    }
 
 }
 
