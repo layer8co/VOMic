@@ -28,7 +28,7 @@ jobs:
         # Decode keystore file from base64 and place it in the appropriate location
         # After that, Build the app using gradle.
         run: |
-          echo $STORE_BASE64 | base64 -d > ./app/layer8.jks
+          echo "$STORE_BASE64" | base64 -d > ./app/layer8.jks
           ./gradlew assembleRelease
 
 
