@@ -2,6 +2,9 @@ name: Create nightly release
 
 on: [workflow_dispatch]
 
+permissions:
+  actions: write
+  
 jobs:
   build-android:
     name: Build the android app
