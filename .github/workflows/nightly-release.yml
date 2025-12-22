@@ -30,8 +30,8 @@ jobs:
                   GOOS=linux GOARCH=amd64 go build -v -o vomic-linux-amd64 .
 
      - name: Upload Build Artifacts
-       working-directory: go
        uses: actions/upload-artifact@v4
+       working-directory: go
        with:
           name: hava-binaries
           path: |
