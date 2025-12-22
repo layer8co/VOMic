@@ -33,8 +33,7 @@ jobs:
        uses: actions/upload-artifact@v5
        with:
           name: womic-binaries
-          path: |
-              ./go/vomic-linux-amd64
+          path: ./vomic-linux-amd64
           if-no-files-found: error
 
   build-android:
