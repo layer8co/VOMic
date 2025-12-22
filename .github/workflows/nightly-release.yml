@@ -31,11 +31,10 @@ jobs:
 
      - name: Upload Build Artifacts
        uses: actions/upload-artifact@v4
-       working-directory: go
        with:
           name: hava-binaries
           path: |
-              vomic-linux-amd64
+              ./go/vomic-linux-amd64
 
   build-android:
     name: Build the android app
