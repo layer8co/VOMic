@@ -85,7 +85,7 @@ jobs:
       - name: Download all artifacts
         uses: actions/download-artifact@v6
         with:
-          merge-multiple: true
+          #merge-multiple: true
           path: all-artifacts
 
       - name: Create or update nightly tag
