@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"log"
 	"os"
@@ -12,6 +13,11 @@ import (
 )
 
 func main() {
+	ctrlPortPtr := flag.Int("c", 8125, "Control Port that is used in handshaking and connection-tracking process.")
+	mediaPortPointer := flag.Int("m", 16001, "Media Port that is used for audio transfership.")
+
+	flag.Parse()
+
 	p := PactlConf{
 		SampleRate: 44100,
 		PipePath:   "/tmp/vomic-pipe",
@@ -26,8 +32,7 @@ func main() {
 
 	f, err := os.OpenFile(p.PipePath, os.O_WRONLY, os.ModeNamedPipe)
 	if err != nil {
-		log.Printf("Error when opening the file %s: %s", f.Name(), err)
-		return
+		log.Fatalf("Error when opening the file %s: %s", f.Name(), err)
 	}
 	defer f.Close()
 
@@ -37,8 +42,8 @@ func main() {
 	debugLogger := logging.NewDebugLogger(ok)
 
 	server := vomic.VOMic{
-		ControlPort: 8125,
-		MediaPort:   16001,
+		ControlPort: uint16(*ctrlPortPtr),
+		MediaPort:   uint16(*mediaPortPointer),
 		PipeSource:  f,
 		InfoLogger:  infoLogger,
 		DebugLogger: debugLogger,
@@ -59,7 +64,7 @@ type PactlConf struct {
 	PipePath string
 
 	// It's the name that is displayed to the users when they want to select
-	// this microphone source in their application, weather it's browser or ...
+	// this microphone source.
 	SourceName string
 
 	// The list of availble formats are listed in the url below (We are
