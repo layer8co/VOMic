@@ -27,7 +27,7 @@ jobs:
      - name: Build the app
        working-directory: go
        run: |
-            GOOS=linux GOARCH=amd64 go build -v -o vomic-linux-amd64 ./cmd/main.go
+            GOOS=linux GOARCH=amd64 go build -v -o vomic-linux-amd64 ./cmd/vomic/...
             
      - name: Upload Build Artifacts
        uses: actions/upload-artifact@v5
