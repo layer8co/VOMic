@@ -34,7 +34,7 @@ INFO: 2026/01/04 12:11:32 Waiting for new connection...
 ```
 ## Android 
 1. Download the Android app from the [github releases](https://github.com/layer8co/VOMic/releases)
-2. Install. Then connect to the desktop side by setting the `host` and `port` fields.
+2. Install. Specify the `host` (IP address) and `port`, then press Connect.
 
 
 
