@@ -130,7 +130,7 @@ class MainActivity : ComponentActivity() {
 // UI
 
 // Newer android devices, Specially Xiaomi devices are resonated
-// with their annoying optimization mechanism And these kind of stuff.
+// with their annoying optimization mechanism.
 // This checkbox can help prevent the device to get into sleep.
 @Composable
 fun KeepTheScreenOnCheckBox() {

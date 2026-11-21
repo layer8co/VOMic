@@ -101,7 +101,7 @@ class AudioClient(
 
 
     fun stop(cause: String = "Operation aborted") {
-        Log.i(TAG, "$cause")
+        Log.i(TAG, "AudioClient stopped: $cause")
 
         onStop(cause)
 
