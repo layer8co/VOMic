@@ -71,27 +71,29 @@ class AudioClient(
         onStart()
 
         // Control socket And SessionInit
-        var mediaPort: UShort
+        var mediaPort: UShort = 0u
 
-        val port = withContext(Dispatchers.IO) {
+        val result = performTcpHandshake(
+            hostAddress,
+            controlPort,
+            getSystemName(),
+            parentScope,
+            OnTimeout = { stop(it) }
+        )
 
-            performTcpHandshake(
-                hostAddress,
-                controlPort,
-                getSystemName(),
-                parentScope,
-                context,
-                { stop(it) }
-            )
-        }
+        result.onSuccess { port -> mediaPort = port }
 
-
-        mediaPort = port
-        Log.i(TAG, "media port got: $mediaPort")
-        if (mediaPort.toInt() == 0) {
-            stop("Received port isn't look valid: $mediaPort")
+        result.onFailure { error ->
+            withContext(Dispatchers.Main) {
+                Toast.makeText(context, "TCP handshake failed: ${error.message}", Toast.LENGTH_LONG).show()
+            }
+            stop()
             return
         }
+
+
+        Log.i(TAG, "media port got: $mediaPort")
+
         parentScope.launch {
             udpSendLoop(audioRecord!!, mediaPort, hostAddress)
         }
@@ -121,10 +123,9 @@ private suspend fun performTcpHandshake(
     port: Int,
     hostname: String,
     scope: CoroutineScope,
-    context: Context,
     // A callback that halts everything in audioRecord class.
     OnTimeout: (String) -> Unit
-): UShort = withContext(Dispatchers.IO) {
+): Result<UShort> = withContext(Dispatchers.IO) {
     var socket: Socket? = null
     try {
         socket = Socket(host, port)
@@ -144,17 +145,15 @@ private suspend fun performTcpHandshake(
                 heartbeat(socket, OnTimeout)
             }
 
-            return@withContext ack.media_port
+            Result.success(ack.media_port)
         } else {
-            Log.e(TAG, "TCP ack is abnormal: $read")
-            return@withContext 0u
+            Log.e(TAG, "SessionAck is looks abnormal: $read")
+
+            Result.failure<UShort>(Exception("SessionAck looks abnormal."))
         }
     } catch (e: Exception) {
         Log.e(TAG, "TCP handshake failed: $e")
-        withContext(Dispatchers.Main) {
-            Toast.makeText(context, "Connection failed", Toast.LENGTH_SHORT).show()
-        }
-        return@withContext 0u
+        Result.failure<UShort>(e)
     }
 }
 
