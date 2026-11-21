@@ -1,22 +1,45 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"log"
 	"os"
 	"os/exec"
+	"os/signal"
 	"strings"
+	"syscall"
 
 	"github.com/Layer8Collective/vomic"
 	"github.com/Layer8Collective/vomic/internal/logging"
 )
 
 func main() {
-	ctrlPortPtr := flag.Int("c", 8125, "Control Port that is used in handshaking and connection-tracking process.")
-	mediaPortPointer := flag.Int("m", 16001, "Media Port that is used for audio transfership.")
+	ctrlPortPtr := flag.Int("c", 8125, "TCP Control Port that is used in handshaking and connection-tracking purposes.")
+	mediaPortPtr := flag.Int("m", 16001, "UDP Media Port that is used for audio transfership.")
 
 	flag.Parse()
+
+	infoLogger := logging.NewInfoLogger()
+
+	_, ok := os.LookupEnv("VOMIC_DEBUG")
+	debugLogger := logging.NewDebugLogger(ok)
+
+	if err := vomic.VerifyPort(*ctrlPortPtr); err != nil {
+		infoLogger.Println(err.Error())
+		return
+	}
+
+	if err := vomic.VerifyPort(*mediaPortPtr); err != nil {
+		infoLogger.Println(err.Error())
+		return
+	}
+
+	if err := vomic.IsUDPPortAvailable("", *mediaPortPtr); err != nil {
+		infoLogger.Printf("Cannot bind to udp port %d: %s \n", *mediaPortPtr, err)
+		return
+	}
 
 	p := PactlConf{
 		SampleRate: 44100,
@@ -26,34 +49,41 @@ func main() {
 		Channel:    vomic.Mono,
 	}
 
-	id := createPipeSource(p)
+	id, err := createPipeSource(p)
+	if err != nil {
+		log.Println(err)
+		return
+	}
 
 	defer disposePipeSource(id)
-
 	f, err := os.OpenFile(p.PipePath, os.O_WRONLY, os.ModeNamedPipe)
 	if err != nil {
-		log.Fatalf("Error when opening the file %s: %s", f.Name(), err)
+		log.Printf("Error when opening the pipeSource %s: %s", f.Name(), err)
+		return
 	}
 	defer f.Close()
 
-	infoLogger := logging.NewInfoLogger()
-
-	_, ok := os.LookupEnv("VOMIC_DEBUG")
-	debugLogger := logging.NewDebugLogger(ok)
-
 	server := vomic.VOMic{
 		ControlPort: uint16(*ctrlPortPtr),
-		MediaPort:   uint16(*mediaPortPointer),
+		MediaPort:   uint16(*mediaPortPtr),
 		PipeSource:  f,
 		InfoLogger:  infoLogger,
 		DebugLogger: debugLogger,
 	}
+	// The application context respects the Interrupt and SIGTERM from Linux.
+	ctx, stop := signal.NotifyContext(
+		context.Background(),
+		os.Interrupt,
+		syscall.SIGTERM,
+	)
+	defer stop()
 
-	err = server.Listen()
+	err = server.ListenAndServe(ctx)
 
 	if err != nil {
 		fmt.Println(err)
 	}
+	infoLogger.Println("Good bye!")
 
 }
 
@@ -77,11 +107,11 @@ type PactlConf struct {
 }
 
 // Creates the pipeSource and returns the module index.
-func createPipeSource(c PactlConf) string {
+func createPipeSource(c PactlConf) (string, error) {
 	_, err := exec.LookPath("pactl")
 
 	if err != nil {
-		log.Fatalln("Does the program `pactl` exists? We cannot find it.")
+		return "", fmt.Errorf("Does the program `pactl` exists? We cannot find it.")
 	}
 
 	arg1 := "load-module"
@@ -96,12 +126,12 @@ func createPipeSource(c PactlConf) string {
 	output, err := cmd.CombinedOutput()
 
 	if err != nil {
-		log.Fatalf("Failed to create the pipe-source: %s \n output: %s", err.Error(), string(output))
+		return "", fmt.Errorf("Failed to create the pipe-source: %s \n output: %s", err.Error(), string(output))
 	}
 
 	fmt.Println("Created a pipe-source with module-index:", string(output))
 
-	return string(output)
+	return string(output), nil
 }
 
 func disposePipeSource(id string) (string, error) {
