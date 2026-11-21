@@ -27,8 +27,8 @@ const (
 )
 
 // SessionInit is a kind of message that we are expecting as a first payload.
-// in TCP Control socket. It used to convey some options from client. Think of
-// it as a application level handshake.
+// It used to convey some options from client. Think of it as a application
+// level handshake.
 type SessionInit struct {
 	Flags    PWChannel
 	Hostname string
