@@ -207,7 +207,7 @@ private suspend fun udpSendLoop(
     val socket = DatagramSocket()
     val remote = InetAddress.getByName(remoteHost)
     val packetBuf = ByteArray(200)
-    try {
+    socket.use { socket ->
         while (isActive) {
             val read = ar.read(packetBuf, 0, packetBuf.size)
             if (read > 0) {
@@ -216,7 +216,5 @@ private suspend fun udpSendLoop(
             }
             yield()
         }
-    } finally {
-        socket.close()
     }
 }
