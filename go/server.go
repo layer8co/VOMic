@@ -2,7 +2,6 @@ package vomic
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -84,8 +83,7 @@ func (v VOMic) handleSession(ctx context.Context, conn net.Conn) error {
 	m, err := net.ListenPacket("udp", fmt.Sprint(":", v.MediaPort))
 
 	if err != nil {
-		err := fmt.Sprintf("binding to udp socket failed: %w", err)
-		return errors.New(err)
+		return fmt.Errorf("binding to udp socket failed: %w", err)
 	}
 	defer m.Close()
 
@@ -116,14 +114,12 @@ func (v VOMic) handleSession(ctx context.Context, conn net.Conn) error {
 
 	bytes, err := sessionAck.MarshalBinary()
 	if err != nil {
-		err := fmt.Sprintf("SessionAck marshaler failed: %w", err)
-		return errors.New(err)
+		return fmt.Errorf("SessionAck marshaler failed: %w", err)
 	}
 
 	_, err = conn.Write(bytes)
 	if err != nil {
-		err := fmt.Sprintf("Writing SessionAck failed: %w", err)
-		return errors.New(err)
+		return fmt.Errorf("Writing SessionAck failed: %w", err)
 	}
 
 	writeCh := make(chan []byte, 200)

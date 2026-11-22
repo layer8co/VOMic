@@ -22,7 +22,7 @@ func IsUDPPortAvailable(interfaceAddr string, port int) error {
 		interfaceAddr = "*"
 	}
 
-	conn, err := net.Listen("udp", fmt.Sprintf("%s:%s", interfaceAddr, port))
+	conn, err := net.Listen("udp", fmt.Sprintf("%s:%d", interfaceAddr, port))
 
 	if err != nil {
 		return err
