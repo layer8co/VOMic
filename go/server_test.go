@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"io"
+	"log"
 	"sync"
 	"testing"
 	"time"
@@ -43,11 +44,14 @@ func (d *dummyWriter) RecieveContent() string {
 
 // The Pinger respects the given context?
 func TestContextPinger(t *testing.T) {
+	t.Parallel()
+
+	v := newTestVOMic()
 	ctx, cancel := context.WithCancel(context.Background())
 
 	reset := make(chan time.Duration, 8)
 
-	go Pinger(ctx, io.Discard, reset)
+	go v.Pinger(ctx, io.Discard, reset)
 	cancel()
 
 	select {
@@ -60,6 +64,10 @@ func TestContextPinger(t *testing.T) {
 
 // Does pinger actually pings?
 func TestWriterPinger(t *testing.T) {
+	t.Parallel()
+
+	v := newTestVOMic()
+
 	ctx := context.Background()
 
 	reset := make(chan time.Duration, 1)
@@ -70,7 +78,7 @@ func TestWriterPinger(t *testing.T) {
 		buf: new(bytes.Buffer),
 	}
 
-	go Pinger(ctx, &dummy, reset)
+	go v.Pinger(ctx, &dummy, reset)
 
 	time.Sleep(time.Second * 2)
 
@@ -84,6 +92,9 @@ func TestWriterPinger(t *testing.T) {
 
 // Does it sends the timeout signal currectly?
 func TestTimeoutPinger(t *testing.T) {
+	t.Parallel()
+
+	v := newTestVOMic()
 	ctx, cancel := context.WithCancel(context.Background())
 
 	reset := make(chan time.Duration, 8)
@@ -95,7 +106,7 @@ func TestTimeoutPinger(t *testing.T) {
 	}
 
 	go func() {
-		err := Pinger(ctx, &dummy, reset)
+		err := v.Pinger(ctx, &dummy, reset)
 		if err != nil {
 			cancel()
 		}
@@ -108,5 +119,11 @@ func TestTimeoutPinger(t *testing.T) {
 
 	case <-time.After(200 * time.Millisecond):
 		t.Fatal("Expected to recieve a context cancelation. Got nothing.")
+	}
+}
+
+func newTestVOMic() VOMic {
+	return VOMic{
+		DebugLogger: log.New(io.Discard, "", log.Default().Flags()),
 	}
 }

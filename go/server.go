@@ -99,7 +99,7 @@ func (v VOMic) handleSession(ctx context.Context, conn net.Conn) error {
 	reset <- 3 * time.Second
 
 	go func() {
-		if err := Pinger(sessionCtx, conn, reset); err != nil {
+		if err := v.Pinger(sessionCtx, conn, reset); err != nil {
 			select {
 			case errCh <- err:
 			default:
@@ -181,14 +181,10 @@ func (v VOMic) handleSession(ctx context.Context, conn net.Conn) error {
 	}
 }
 
-// Pinger tries to make sure the connection is healthy and active. It sends a
-// truthy value to timeout channel when it encounter with an error when writing
-// on Writer. The reset channel act like a heartbeat of the process. The caller
-// needs to keep advancing it after each network interaction to prevent
-// unnecessary time-out packets be send. Zero value for reset channel defaults
-// to 5 second duration. if it was set to default value,it sets the timer
-// interval to 5 second.
-func Pinger(
+// Pinger is a blocking function that returns an error when it fails to write to
+// the given writer. It also respect the given context.
+// "reset" channel specifies the duration of pinging interval.
+func (v VOMic) Pinger(
 	ctx context.Context,
 	w io.Writer,
 	reset <-chan time.Duration,
@@ -201,19 +197,22 @@ func Pinger(
 	for {
 		select {
 		case <-ctx.Done():
-			log.Println("Pinger context done")
+			v.DebugLogger.Println("Pinger: Context done channel recieved.")
 			return nil
 
 		case newInterval, ok := <-reset:
+
 			if !ok {
 				return nil
 			}
 
+			v.DebugLogger.Println("Pinger: New Interval ", newInterval.String())
 			if newInterval > 0 {
 				interval = newInterval
 			}
 
 			if !timer.Stop() {
+				// Drain the timer tick channel
 				select {
 				case <-timer.C:
 				default:
@@ -223,7 +222,6 @@ func Pinger(
 			timer.Reset(interval)
 
 		case <-timer.C:
-			log.Println("Pinger pinging")
 			if _, err := w.Write([]byte("do not panic")); err != nil {
 				return fmt.Errorf("heartbeat write failed: %w", err)
 			}
