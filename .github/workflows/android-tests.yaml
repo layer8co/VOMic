@@ -25,4 +25,5 @@ jobs:
         uses: gradle/actions/setup-gradle@v6
 
       - name: Run all the unit tests
+        working-directory: ./VOMic_Android
         run: ./gradlew :app:testDebugUnitTest
