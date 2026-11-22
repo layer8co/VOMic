@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"io"
+	"sync"
 	"testing"
 	"time"
 )
@@ -12,18 +13,26 @@ import (
 type dummyWriter struct {
 	buf   *bytes.Buffer
 	fails bool
+
+	// mutex protects the "buf".
+	mu sync.Mutex
 }
 
-func (d dummyWriter) Write(b []byte) (int, error) {
+func (d *dummyWriter) Write(b []byte) (int, error) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+
 	if d.fails {
 		return 0, errors.New("error")
 	}
-	n, err := d.buf.Write(b)
 
-	return n, err
+	return d.buf.Write(b)
 }
 
-func (d dummyWriter) RecieveContent() string {
+func (d *dummyWriter) RecieveContent() string {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+
 	return d.buf.String()
 }
 
@@ -38,16 +47,14 @@ func TestContextPinger(t *testing.T) {
 
 	reset := make(chan time.Duration, 8)
 
-	timeout := make(chan bool, 1)
-
-	go Pinger(ctx, io.Discard, reset, timeout)
+	go Pinger(ctx, io.Discard, reset)
 	cancel()
 
 	select {
-	case _ = <-timeout:
+	case <-ctx.Done():
 
 	case <-time.After(200 * time.Millisecond):
-		t.Fatal("Expected to timeout, but got nothing after waiting")
+		t.Fatal("Expected to timeout, but got nothing after waiting for 200 miliseconds!")
 	}
 }
 
@@ -55,17 +62,15 @@ func TestContextPinger(t *testing.T) {
 func TestWriterPinger(t *testing.T) {
 	ctx := context.Background()
 
-	reset := make(chan time.Duration)
+	reset := make(chan time.Duration, 1)
 
-	timeout := make(chan bool)
+	reset <- time.Second * 1
 
 	dummy := dummyWriter{
 		buf: new(bytes.Buffer),
 	}
 
-	go Pinger(ctx, dummy, reset, timeout)
-
-	reset <- time.Second
+	go Pinger(ctx, &dummy, reset)
 
 	time.Sleep(time.Second * 2)
 
@@ -79,24 +84,29 @@ func TestWriterPinger(t *testing.T) {
 
 // Does it sends the timeout signal currectly?
 func TestTimeoutPinger(t *testing.T) {
-	ctx := context.Background()
+	ctx, cancel := context.WithCancel(context.Background())
 
 	reset := make(chan time.Duration, 8)
 	reset <- time.Millisecond
-
-	timeout := make(chan bool)
 
 	dummy := dummyWriter{
 		buf:   new(bytes.Buffer),
 		fails: true,
 	}
 
-	go Pinger(ctx, dummy, reset, timeout)
+	go func() {
+		err := Pinger(ctx, &dummy, reset)
+		if err != nil {
+			cancel()
+		}
+	}()
 
 	select {
-	case _ = <-timeout:
+	case <-ctx.Done():
+		// Expecting cancelation, as a side effect of the error in goroutine
+		// above.
 
 	case <-time.After(200 * time.Millisecond):
-		t.Fatal("Expected to timeout happen. Got nothing")
+		t.Fatal("Expected to recieve a context cancelation. Got nothing.")
 	}
 }
