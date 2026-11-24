@@ -10,7 +10,9 @@ BINARY = "vomic"
 release_url = f"https://api.github.com/repos/{REPO}/releases/tags/nightly"
 
 print("Going to install vomic nightly.")
-input("Procceed? Press Enter to continue")
+with open("/dev/tty") as tty:
+    print("Proceed? Press Enter to continue")
+    tty.readline()
 
 with urllib.request.urlopen(release_url) as response:
     release = json.load(response)
