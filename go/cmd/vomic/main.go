@@ -122,14 +122,11 @@ func createPipeSource(c vomic.PactlConf) (string, error) {
 	arg7 := fmt.Sprintf("channels=%d", c.Channel)
 
 	cmd := exec.Command("pactl", arg1, arg2, arg3, arg4, arg5, arg6, arg7)
-	//return "", errors.New(cmd.String())
 	output, err := cmd.CombinedOutput()
 
 	if err != nil {
 		return "", fmt.Errorf("Failed to create the pipe-source: %s \n output: %s", err.Error(), string(output))
 	}
-
-	fmt.Println("Created a pipe-source with module-index:", string(output))
 
 	return string(output), nil
 }
