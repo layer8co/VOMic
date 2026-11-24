@@ -1,0 +1,102 @@
+name: Create stable release
+
+on:
+  push:
+    tags:
+      - 'v**'
+
+permissions:
+  contents: write
+  
+jobs:
+  ## Builds the golang app and puts it in the artifact
+  build-golang:
+    name: Build the linux app
+    runs-on: ubuntu-latest
+    steps:
+     - name: Checkout the code 
+       uses: actions/checkout@v6
+
+     - name: Setup go
+       uses: actions/setup-go@v5
+       with:
+          go-version: '1.26'
+
+     - name: Run Tests
+       working-directory: go
+       run: go test ./... -v
+
+     - name: Build the app
+       working-directory: go
+       run: |
+            GOOS=linux GOARCH=amd64 go build \
+            --ldflags="-X main.version=${GITHUB_REF_NAME}" -v -o vomic-linux-amd64 ./cmd/vomic/main.go
+            
+     - name: Upload Build Artifacts
+       uses: actions/upload-artifact@v5
+       with:
+          name: vomic-binaries
+          path: |
+              ./go/vomic-linux-amd64
+          if-no-files-found: error
+
+  ## Builds the kotlin app and puts it in the artifact
+  build-android:
+    name: Build the android app
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup Java development kit 
+        uses: actions/setup-java@v5
+        with:
+          java-version: 21
+          distribution: "temurin"
+          cache: gradle
+
+      - name: Build release apk
+        env:
+          STORE_BASE64: ${{secrets.STORE_BASE64}}
+          KEY_PASSWORD: ${{secrets.KEY_PASSWORD}}
+          KEY_ALIAS: ${{secrets.KEY_ALIAS}}
+          STORE_PASSWORD: ${{secrets.STORE_PASSWORD}}
+
+        working-directory: VOMic_Android
+        # Decode keystore file from base64 and place it in the appropriate location
+        # After that, Build the app using gradle.
+        run: |
+          echo "$STORE_BASE64" | base64 -d > ./app/layer8.jks
+          ./gradlew assembleRelease
+
+
+      - name: Upload release apk
+        uses: actions/upload-artifact@v5
+        with:
+          name: release-apk
+          path: ./VOMic_Android/app/build/outputs/apk/release/*.apk
+          # Fail instatntly, if nothing found in the "path".
+          if-no-files-found: error
+
+  release-android:
+    runs-on: ubuntu-latest
+    needs: [build-android,build-golang]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v6
+        with:
+          #merge-multiple: true
+          path: all-artifacts
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v3
+        with:
+          name: VOMic ${{ github.ref_name }}
+          generate_release_notes: true
+          tag_name: ${{ github.ref_name }}
+          prerelease: false
+          files: all-artifacts/**/*
