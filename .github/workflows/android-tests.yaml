@@ -2,7 +2,11 @@ name: Android Unit Tests
 
 on:
   push:
+    paths: 
+      - 'VOMic_Android/**'
   pull_request:
+    paths: 
+    - 'VOMic_Android/**'
 
 permissions:
   contents: read
