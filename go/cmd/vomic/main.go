@@ -17,11 +17,21 @@ import (
 	"github.com/Layer8Collective/vomic/internal/logging"
 )
 
+// "version" is a variable that is subject to be changed at build time.
+// https://www.digitalocean.com/community/tutorials/using-ldflags-to-set-version-information-for-go-applications
+var version string = "nightly"
+
 func main() {
 	ctrlPortPtr := flag.Int("c", 8125, "TCP Control Port that is used in handshaking and connection-tracking purposes.")
 	mediaPortPtr := flag.Int("m", 16001, "UDP Media Port that is used for audio transfership.")
+	versionPtr := flag.Bool("version", false, "Print VOMic version")
 
 	flag.Parse()
+
+	if *versionPtr {
+		fmt.Printf("VOMic %s \n", version)
+		return
+	}
 
 	infoLogger := logging.NewInfoLogger()
 
