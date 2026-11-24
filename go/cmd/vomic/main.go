@@ -1,6 +1,8 @@
 package main
 
 import (
+	"bufio"
+	"bytes"
 	"context"
 	"flag"
 	"fmt"
@@ -49,6 +51,14 @@ func main() {
 		Channel:    vomic.Mono,
 	}
 
+	// Remove all the stale pipe-sources.
+	err := RemoveVOMicModules()
+
+	if err != nil {
+		log.Println(err)
+		return
+	}
+
 	id, err := createPipeSource(p)
 	if err != nil {
 		log.Println(err)
@@ -56,6 +66,7 @@ func main() {
 	}
 
 	defer disposePipeSource(id)
+
 	f, err := os.OpenFile(p.PipePath, os.O_WRONLY, os.ModeNamedPipe)
 	if err != nil {
 		log.Printf("Error when opening the pipeSource %s: %s", f.Name(), err)
@@ -123,6 +134,7 @@ func createPipeSource(c PactlConf) (string, error) {
 	arg7 := fmt.Sprintf("channels=%d", c.Channel)
 
 	cmd := exec.Command("pactl", arg1, arg2, arg3, arg4, arg5, arg6, arg7)
+	//return "", errors.New(cmd.String())
 	output, err := cmd.CombinedOutput()
 
 	if err != nil {
@@ -145,4 +157,43 @@ func disposePipeSource(id string) (string, error) {
 		return "", fmt.Errorf("Failed to unload the pipe-source module: %s \n", output)
 	}
 	return string(output), nil
+}
+
+// Remove all the pipe-source modules named "Vo-Mic". This function usually ran
+// in the startup phase.
+// The prorgam unloads the pipe-source module that it created on exit, but
+// checking for previous stale pipe-source modules are helpful for preventing
+// unexpected behavior.
+func RemoveVOMicModules() error {
+	cmd := exec.Command("pactl", "list", "short", "modules")
+
+	output, err := cmd.Output()
+	if err != nil {
+		return err
+	}
+
+	scanner := bufio.NewScanner(bytes.NewReader(output))
+
+	for scanner.Scan() {
+		fields := strings.Fields(scanner.Text())
+		if len(fields) < 3 {
+			continue
+		}
+
+		moduleID := fields[0]
+		moduleName := fields[1]
+		args := strings.Join(fields[2:], " ")
+
+		if moduleName == "module-pipe-source" &&
+			strings.Contains(args, "source_name=VO-Mic") {
+
+			cmd := exec.Command("pactl", "unload-module", moduleID)
+			if output, err := cmd.CombinedOutput(); err != nil {
+				return fmt.Errorf("failed to unload module %s: %s: %w",
+					moduleID, output, err)
+			}
+		}
+	}
+
+	return scanner.Err()
 }
