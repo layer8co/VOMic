@@ -18,7 +18,7 @@ func VerifyPort(port int) error {
 }
 
 func IsUDPPortAvailable(interfaceAddr string, port int) error {
-	conn, err := net.Listen("udp", fmt.Sprintf("%s:%d", interfaceAddr, port))
+	conn, err := net.ListenPacket("udp", fmt.Sprintf("%s:%d", interfaceAddr, port))
 
 	if err != nil {
 		return err
