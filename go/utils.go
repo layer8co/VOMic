@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"os/exec"
 )
 
 func VerifyPort(port int) error {
@@ -26,4 +27,14 @@ func IsUDPPortAvailable(interfaceAddr string, port int) error {
 	conn.Close()
 
 	return nil
+}
+
+func IsPactlExists() bool {
+	_, err := exec.LookPath("pactl")
+
+	if err != nil {
+		return false
+	}
+
+	return true
 }

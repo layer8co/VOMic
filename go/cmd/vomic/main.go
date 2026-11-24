@@ -43,7 +43,14 @@ func main() {
 		return
 	}
 
-	p := PactlConf{
+	yes := vomic.IsPactlExists()
+
+	if !yes {
+		log.Println("Does the program `pactl` exists? We cannot find it.")
+		return
+	}
+
+	p := vomic.PactlConf{
 		SampleRate: 44100,
 		PipePath:   "/tmp/vomic-pipe",
 		SourceName: "VO-Mic",
@@ -98,30 +105,11 @@ func main() {
 
 }
 
-type PactlConf struct {
-	SampleRate int32
-
-	// The pipeSource filename
-	PipePath string
-
-	// It's the name that is displayed to the users when they want to select
-	// this microphone source.
-	SourceName string
-
-	// The list of availble formats are listed in the url below (We are
-	// using signed little endian 16 bit):
-	// https://docs.pipewire.org/page_man_pipewire-pulse-modules_7.html
-	Format vomic.PWFormat
-
-	// Mono or Stereo.
-	Channel vomic.PWChannel
-}
-
 // Creates the pipeSource and returns the module index.
-func createPipeSource(c PactlConf) (string, error) {
-	_, err := exec.LookPath("pactl")
+func createPipeSource(c vomic.PactlConf) (string, error) {
+	yes := vomic.IsPactlExists()
 
-	if err != nil {
+	if !yes {
 		return "", fmt.Errorf("Does the program `pactl` exists? We cannot find it.")
 	}
 

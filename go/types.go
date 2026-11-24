@@ -7,6 +7,25 @@ import (
 	"strings"
 )
 
+type PactlConf struct {
+	SampleRate int32
+
+	// The pipeSource filename
+	PipePath string
+
+	// It's the name that is displayed to the users when they want to select
+	// this microphone source.
+	SourceName string
+
+	// The list of availble formats are listed in the url below (We are
+	// using signed little endian 16 bit):
+	// https://docs.pipewire.org/page_man_pipewire-pulse-modules_7.html
+	Format PWFormat
+
+	// Mono or Stereo.
+	Channel PWChannel
+}
+
 type PWFormat string
 
 const (
