@@ -47,7 +47,7 @@ func (v VOMic) ListenAndServe(ctx context.Context) error {
 			continue
 		}
 
-		// This must be block.
+		// This must be blocking.
 		if err := v.handleSession(ctx, conn); err != nil {
 			v.InfoLogger.Println("Session ended. Cause:", err.Error())
 		}
