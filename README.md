@@ -44,7 +44,6 @@ $ vomic -h
         Media Port that is used for audio transfership. (default 16001)
 
 $ ./vomic-linux-amd64
-Created a pipe-source with module-index: 536870916
 
 INFO: 2026/01/04 12:11:32 🎤 VO-MIC Listening on TCP network:  [::]:8125
 INFO: 2026/01/04 12:11:32 Waiting for new connection...
